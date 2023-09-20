@@ -4,11 +4,21 @@ from deck import Deck, Card
 
 
 def evaluate_hand(hand):
-    values = [card.value for card in hand]
+    # values = [card.value for card in hand if card.value < 10 else 10]
+    values = []
+    #ace count variable
+
+    for card in hand:
+        if card.value <=10:
+            values.append(card.value)
+        else:
+            values.append(10)
+    value = sum(values)
     if 1 in values:
-        #do something
+        if value <= 11:
+            value += 10
         pass
-    return sum(value)
+    return value
 
 @dataclass
 class Player:
