@@ -1,7 +1,7 @@
 import pytest
 from deck import Card, Suit, Value, Deck
 
-from jack import Game, Player, evaluate_hand
+from jack import Game, Player, evaluate_hand, Dealer
 
 
 def test_hand_dealt():
@@ -40,14 +40,14 @@ def test_deal_one_card():
 
 def test_hand_bust():
     player = Player(
+        1,
         [
             Card(suit="spades", value=10),
             Card(suit="spades", value=10),
             Card(suit="spades", value=2),
-        ]
+        ],
     )
-
-    assert player.is_bust() is True
+    assert player.is_bust is True
 
 
 @pytest.mark.parametrize(
@@ -148,38 +148,59 @@ def test_score_is_calculated_correctly_for_aces(hand, expected_score):
     assert evaluate_hand(hand) == expected_score
 
 
+def test_can_specify_initial_deck():
+    """Ensure that we can specify a deck for testing purposes."""
+    n_players = 1
+    initial_deck = [
+        Card(suit=Suit.Spades, value=Value.Ace),
+        Card(suit=Suit.Spades, value=Value.Two),
+        Card(suit=Suit.Diamonds, value=Value.Three),
+        Card(suit=Suit.Diamonds, value=Value.Four),
+        Card(suit=Suit.Clubs, value=Value.Five),
+        Card(suit=Suit.Clubs, value=Value.Six),
+    ]
+    game = Game(initial_deck=initial_deck)
+    # n_players + 1 because the dealer is also a player
+    expected = len(initial_deck) - ((n_players + 1) * 2)
+    assert len(game.cards) == expected
+
+
 # @pytest.mark.skip
 def test_correct_number_of_cards_on_hit():
     """The player should have one more card after hitting."""
-    starting_deck = Deck(
-        [
-            Card(suit=Suit.Spades, value=Value.Ten),
-            Card(suit=Suit.Spades, value=Value.Eight),
-            Card(suit=Suit.Diamonds, value=Value.Ten),
-            Card(suit=Suit.Diamonds, value=Value.Eight),
-            Card(suit=Suit.Clubs, value=Value.Ten),
-            Card(suit=Suit.Clubs, value=Value.Eight),
-        ]
-    )
-    game = Game()
+    initial_deck = [
+        Card(suit=Suit.Spades, value=Value.Ten),
+        Card(suit=Suit.Spades, value=Value.Eight),
+        Card(suit=Suit.Diamonds, value=Value.Ten),
+        Card(suit=Suit.Diamonds, value=Value.Eight),
+        Card(suit=Suit.Clubs, value=Value.Ten),
+        Card(suit=Suit.Clubs, value=Value.Eight),
+    ]
+    game = Game(initial_deck=initial_deck)
 
     assert len(game.players[0].hand) == 2
     game.play(["h"])
     assert len(game.players[0].hand) == 3
 
 
-@pytest.mark.xfail
 def test_correct_number_of_cards_on_stand():
     """The player should have the same number of cards after standing."""
-    player_hand = [
+    initial_deck = [
         Card(suit=Suit.Spades, value=Value.Ten),
         Card(suit=Suit.Spades, value=Value.Eight),
+        Card(suit=Suit.Diamonds, value=Value.Ten),
+        Card(suit=Suit.Diamonds, value=Value.Eight),
+        Card(suit=Suit.Clubs, value=Value.Ten),
+        Card(suit=Suit.Clubs, value=Value.Eight),
     ]
-    assert len(player_hand) == 2
-    # Stand
-    assert len(player_hand) == 2
+    game = Game(initial_deck=initial_deck)
+
+    assert len(game.players[0].hand) == 2
+    game.play(["s"])
+    assert len(game.players[0].hand) == 2
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize(
     "first_card, second_card, hit",
     [
@@ -197,8 +218,10 @@ def test_correct_number_of_cards_on_stand():
 )
 def test_dealer_must_hit(first_card, second_card, hit):
     """The dealer must hit if their score is less than 17."""
+    # TODO We can't test that our automation logic is correct because
+    #      we can't figure out what the dealer intends to do
     hand = [first_card, second_card]
-    evaluate_dealer_hand(hand)
+    dealer = Dealer(hand)
     assert False
 
 
