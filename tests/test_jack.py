@@ -1,41 +1,28 @@
 import pytest
 from deck import Card, Suit, Value, Deck
 
-from jack import Game, Player, evaluate_hand, Dealer
+from jack import Game, Player
 
 
 def test_hand_dealt():
     game = Game()
-    hand = game.get_hand()
-    assert len(hand) == 2
+    assert len(game.players[0].hand) == 2
 
 
 def test_cards_dont_match():
     game = Game()
-    hand = game.get_hand()
+    hand = game.players[0].hand
     assert hand[0] != hand[1]
 
 
 def test_game_start():
     game = Game()
-    assert len(game.cards) == 48
+    assert len(game.deck) == 48
 
 
 def test_player_hand_score():
-    Game()
-
-    hand = [Card(suit="spades", value=2), Card(suit="spades", value=3)]
-    assert evaluate_hand(hand) == 5
-
-
-def test_deal_one_card():
-    game = Game()
-    game.deal(game.players[0].hand)
-    game.deal(game.players[1].hand)
-    assert len(game.players[0].hand) == 3
-    assert len(game.players[1].hand) == 3
-
-    # Check count of cards go down over time
+    player = Player(1, [Card(suit="spades", value=2), Card(suit="spades", value=3)])
+    assert player.score == 5
 
 
 def test_hand_bust():
@@ -69,7 +56,8 @@ def test_score_is_calculated_correctly_for_number_cards(
     first_card, second_card, expected_score
 ):
     """The score should be the sum of the values of the cards."""
-    assert evaluate_hand([first_card, second_card]) == expected_score
+    player = Player(1, [first_card, second_card])
+    assert player.score == expected_score
 
 
 @pytest.mark.parametrize(
@@ -96,7 +84,8 @@ def test_score_is_calculated_correctly_for_face_cards(
     first_card, second_card, expected_score
 ):
     """The score should be the sum of the values of the cards with face cards having a value of 10."""
-    assert evaluate_hand([first_card, second_card]) == expected_score
+    player = Player(1, [first_card, second_card])
+    assert player.score == expected_score
 
 
 # @pytest.mark.xfail
@@ -145,7 +134,8 @@ def test_score_is_calculated_correctly_for_face_cards(
 )
 def test_score_is_calculated_correctly_for_aces(hand, expected_score):
     """The score should be the sum of the values of the cards with aces having a value of 1 or 11."""
-    assert evaluate_hand(hand) == expected_score
+    player = Player(1, hand)
+    assert player.score == expected_score
 
 
 def test_can_specify_initial_deck():
@@ -162,7 +152,7 @@ def test_can_specify_initial_deck():
     game = Game(initial_deck=initial_deck)
     # n_players + 1 because the dealer is also a player
     expected = len(initial_deck) - ((n_players + 1) * 2)
-    assert len(game.cards) == expected
+    assert len(game.deck) == expected
 
 
 # @pytest.mark.skip
@@ -218,35 +208,49 @@ def test_correct_number_of_cards_on_stand():
 )
 def test_dealer_must_hit(first_card, second_card, hit):
     """The dealer must hit if their score is less than 17."""
-    # TODO We can't test that our automation logic is correct because
-    #      we can't figure out what the dealer intends to do
-    hand = [first_card, second_card]
-    dealer = Dealer(hand)
-    assert False
+    dealer = Player(1, [first_card, second_card])
+    dealer.dealer = True
+    will_hit = dealer.next_action() == "h"
+    assert will_hit == hit
 
 
-@pytest.mark.xfail
 def test_player_wins_with_higher_score():
     """The player wins when their score is higher than the dealer's score."""
-    [Card(suit=Suit.Spades, value=Value.Ten), Card(suit=Suit.Spades, value=Value.King)]
-    [Card(suit=Suit.Spades, value=Value.Ten), Card(suit=Suit.Spades, value=Value.Eight)]
-    assert False
+    initial_deck = [
+        Card(suit=Suit.Spades, value=Value.Ten),  # player
+        Card(suit=Suit.Spades, value=Value.King),  # player
+        Card(suit=Suit.Spades, value=Value.Ten),  # dealer
+        Card(suit=Suit.Spades, value=Value.Eight),  # dealer
+    ]
+    game = Game(initial_deck=initial_deck)
+    game.players[-1].current = True
+    assert game.players[0] > game.players[1]
 
 
-@pytest.mark.xfail
 def test_player_loses_with_lower_score():
     """The player loses when their score is lower than the dealer's score."""
-    [Card(suit=Suit.Spades, value=Value.Ten), Card(suit=Suit.Spades, value=Value.Eight)]
-    [Card(suit=Suit.Spades, value=Value.Ten), Card(suit=Suit.Spades, value=Value.King)]
-    assert False
+    initial_deck = [
+        Card(suit=Suit.Spades, value=Value.Ten),  # player
+        Card(suit=Suit.Spades, value=Value.Eight),  # player
+        Card(suit=Suit.Spades, value=Value.Ten),  # dealer
+        Card(suit=Suit.Spades, value=Value.King),  # dealer
+    ]
+    game = Game(initial_deck=initial_deck)
+    game.players[-1].current = True
+    assert game.players[0] < game.players[1]
 
 
-@pytest.mark.xfail
 def test_player_ties_with_same_score():
     """The player ties when their score is the same as the dealer's score."""
-    [Card(suit=Suit.Spades, value=Value.Ten), Card(suit=Suit.Spades, value=Value.Eight)]
-    [Card(suit=Suit.Spades, value=Value.Ten), Card(suit=Suit.Spades, value=Value.Eight)]
-    assert False
+    initial_deck = [
+        Card(suit=Suit.Spades, value=Value.Ten),  # player
+        Card(suit=Suit.Spades, value=Value.Eight),  # player
+        Card(suit=Suit.Spades, value=Value.Ten),  # dealer
+        Card(suit=Suit.Spades, value=Value.Eight),  # dealer
+    ]
+    game = Game(initial_deck=initial_deck)
+    game.players[-1].current = True
+    assert game.players[0] == game.players[1]
 
 
 @pytest.mark.xfail
